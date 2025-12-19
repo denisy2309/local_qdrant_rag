@@ -2,7 +2,7 @@
 const N8N_WEBHOOK_URL = 'http://localhost:8001/v1';
 const ELEVENLABS_API_KEY_DEFAULT = 'sk_dd5a680b27c96167eddce391f01c4deb93d799acec34ae56'; // Default key (German, English, Turkish)
 const ELEVENLABS_API_KEY_ARABIC = 'sk_fae445a502bdf9d6721db1253e41b2ced35028c85b333e0b'; // Arabic-specific key
-const ELEVENLABS_VOICE_ID_DEFAULT = 'kaGxVtjLwllv1bi2GFag'; // Default German Voice ID
+const ELEVENLABS_VOICE_ID_DEFAULT = 'FTNCalFNG5bRnkkaP5Ug'; // Default German Voice ID
 
 // --- Session ID ---
 const sessionId = crypto.randomUUID();
