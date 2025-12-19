@@ -378,141 +378,109 @@ async function handleSend(text, isFromVoice = false) {
     }
 }
 
-function speakText(text, apiKey) {
-    return new Promise(async (resolve, reject) => {
-        stopCurrentSpeech(); // Stop any previous speech or pending request
+async function speakText(text, apiKey) {
+    stopCurrentSpeech();
 
-        // Ensure AudioContext is available and resumed
-        if (!audioContext) {
-            console.error("AudioContext not initialized.");
-            return reject(new Error("AudioContext not initialized."));
-        }
-        if (audioContext.state === 'suspended') {
-            try {
-                await audioContext.resume();
-                console.log("AudioContext resumed for playback.");
-            } catch (e) {
-                console.error("Failed to resume AudioContext for playback:", e);
-                return reject(new Error("Failed to resume AudioContext."));
-            }
-        }
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+    }
 
-        elevenLabsController = new AbortController(); // Create a new controller for this request
-        const signal = elevenLabsController.signal;
+    elevenLabsController = new AbortController();
+    const signal = elevenLabsController.signal;
 
-        const selectedLang = languageSelect.value;
-        let voiceId;
-        // Select Voice ID based on language
-        if (selectedLang.startsWith('en')) {
-            voiceId = 'uYXf8XasLslADfZ2MB4u'; // English
-        } else if (selectedLang.startsWith('tr')) {
-            voiceId = '5RqXmIU9ikjifeWoXHMG'; // Turkish
-        } else if (selectedLang.startsWith('ar')) {
-            voiceId = 'VMy40598IGgDeaOE8phq'; // Arabic
-        } else if (selectedLang.startsWith('ru')) {
-            voiceId = 'aG9q1I1wTbfHh5sbpJnp'; // Russian
-        } else if (selectedLang.startsWith('uk')) {
-            voiceId = 'Ntd0iVwICtUtA6Fvx27M'; // Ukrainian
-        } else { // Default to German
-            voiceId = ELEVENLABS_VOICE_ID_DEFAULT;
-        }
-        console.log(`Using Voice ID: ${voiceId} for language: ${selectedLang}`);
+    const selectedLang = languageSelect.value;
 
-        const modelId = 'eleven_multilingual_v2';
-        console.log(`Using Model ID: ${modelId}`);
+    let voiceId;
+    if (selectedLang.startsWith('en')) voiceId = 'uYXf8XasLslADfZ2MB4u';
+    else if (selectedLang.startsWith('tr')) voiceId = '5RqXmIU9ikjifeWoXHMG';
+    else if (selectedLang.startsWith('ar')) voiceId = 'VMy40598IGgDeaOE8phq';
+    else if (selectedLang.startsWith('ru')) voiceId = 'aG9q1I1wTbfHh5sbpJnp';
+    else if (selectedLang.startsWith('uk')) voiceId = 'Ntd0iVwICtUtA6Fvx27M';
+    else voiceId = ELEVENLABS_VOICE_ID_DEFAULT;
 
-        const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
-        const headers = {
-            'Accept': 'audio/mpeg', // Keep this for the API request
-            'Content-Type': 'application/json',
+    const streamUrl =
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=pcm_24000`;
+
+    const response = await fetch(streamUrl, {
+        method: 'POST',
+        headers: {
             'xi-api-key': apiKey,
-        };
-        const data = {
-            text: text,
-            model_id: modelId,
-            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-        };
-
-        try {
-            console.log('Sending to ElevenLabs:', text);
-            const selectedLang = languageSelect.value; // Get language again inside try for safety
-            statusTextListening.textContent = ''; // Clear listening text
-            statusTextThinking.textContent = ''; // Clear thinking text
-            statusTextSpeaking.textContent = statusTexts[selectedLang]?.speaking || statusTexts['de-DE'].speaking; // Set speaking text based on language
-            statusTextIdle.textContent = ''; // Clear idle text
-            statusElement.textContent = ''; // Clear general status
-            voiceStatusDisplay.className = 'speaking';
-            console.log("Set voiceStatusDisplay class to: speaking");
-
-            const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(data), signal: signal });
-
-            if (!response.ok) {
-                let errorBody = 'Unknown error';
-                try { errorBody = (await response.json()).detail || response.statusText; } catch (e) { errorBody = response.statusText; }
-                throw new Error(`ElevenLabs request failed: ${response.status} ${errorBody}`);
-            }
-
-            const audioData = await response.arrayBuffer(); // Get data as ArrayBuffer
-            console.log("Received audio data, decoding...");
-
-            // Decode the audio data using Web Audio API
-            audioContext.decodeAudioData(audioData, (buffer) => {
-                console.log("Audio decoded successfully.");
-                currentAudioSource = audioContext.createBufferSource();
-                currentAudioSource.buffer = buffer;
-                currentAudioSource.connect(audioContext.destination);
-
-                currentAudioSource.onended = () => {
-                    console.log('Web Audio playback finished.');
-                    currentAudioSource = null;
-                    elevenLabsController = null;
-                    statusTextSpeaking.textContent = ''; // Clear speaking text on end
-                    // After speaking, if still in voiceActive, go back to listening state
-                    if (currentMode === 'voiceActive') {
-                         const selectedLang = languageSelect.value; // Get language again
-                         statusTextListening.textContent = statusTexts[selectedLang]?.listening || statusTexts['de-DE'].listening; // Set listening text based on language
-                         voiceStatusDisplay.className = 'listening';
-                         allowRecognitionRestart = true; // Re-enable recognition restart
-                         if (!isRecognizing) {
-                             console.log("Recognition already ended, manually triggering onend for restart check.");
-                             recognition.onend();
-                         }
-                    }
-                    resolve();
-                };
-
-                console.log("Starting Web Audio playback.");
-                currentAudioSource.start(0);
-
-            }, (decodeError) => {
-                console.error('Error decoding audio data:', decodeError);
-                statusElement.textContent = 'Audio Dekodierungsfehler.';
-                statusElement.className = 'error';
-                voiceStatusDisplay.className = 'error';
-                statusTextSpeaking.textContent = ''; // Clear speaking text on error
-                elevenLabsController = null;
-                reject(new Error('Error decoding audio data'));
-            });
-
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('ElevenLabs fetch request aborted.');
-                elevenLabsController = null;
-                statusTextSpeaking.textContent = ''; // Clear speaking text on abort
-                resolve(); // Resolve as the action was intentionally aborted
-            } else {
-                console.error('Error calling ElevenLabs API or processing audio:', error);
-                statusElement.textContent = 'TTS API/Audio Fehler.';
-                statusElement.className = 'error';
-                voiceStatusDisplay.className = 'error';
-                statusTextSpeaking.textContent = ''; // Clear speaking text on error
-                elevenLabsController = null;
-                console.error("ElevenLabs/Audio Error Object:", error);
-                reject(error);
-            }
-        }
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            text,
+            model_id: 'eleven_multilingual_v2',
+            voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+        }),
+        signal
     });
+
+    if (!response.ok) {
+        throw new Error(`ElevenLabs stream failed: ${response.status}`);
+    }
+
+    // UI Status
+    statusTextThinking.textContent = '';
+    statusTextSpeaking.textContent =
+        statusTexts[selectedLang]?.speaking || statusTexts['de-DE'].speaking;
+    voiceStatusDisplay.className = 'speaking';
+
+    const reader = response.body.getReader();
+    const sampleRate = 24000;
+
+    let audioQueue = [];
+    let isPlaying = false;
+
+    function playNextChunk() {
+        if (audioQueue.length === 0) {
+            isPlaying = false;
+            return;
+        }
+
+        isPlaying = true;
+        const pcmChunk = audioQueue.shift();
+        const audioBuffer = audioContext.createBuffer(
+            1,
+            pcmChunk.length,
+            sampleRate
+        );
+
+        audioBuffer.copyToChannel(pcmChunk, 0);
+
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.onended = playNextChunk;
+        source.start();
+        currentAudioSource = source;
+    }
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        // PCM16 → Float32
+        const pcm16 = new Int16Array(value.buffer);
+        const float32 = new Float32Array(pcm16.length);
+        for (let i = 0; i < pcm16.length; i++) {
+            float32[i] = pcm16[i] / 32768;
+        }
+
+        audioQueue.push(float32);
+        if (!isPlaying) playNextChunk();
+    }
+
+    // Cleanup & restart listening
+    statusTextSpeaking.textContent = '';
+    if (currentMode === 'voiceActive') {
+        allowRecognitionRestart = true;
+        recognition.onend();
+    }
 }
+
 
 // --- UI Mode Management & Event Listeners ---
 function setUIMode(newMode) {
