@@ -323,7 +323,7 @@ async function handleSend(text, isFromVoice = false) {
 
         if (!response.ok) { throw new Error(`n8n request failed with status ${response.status}`); }
         const result = await response.json();
-        const botResponseText = result.output;
+        const botResponseText = result.messages.content;
         if (!botResponseText) { throw new Error('n8n response did not contain an "output" field.'); }
         console.log('Received from n8n:', botResponseText);
 
