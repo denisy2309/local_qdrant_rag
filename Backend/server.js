@@ -1,8 +1,11 @@
 import express from "express";
 import fetch from "node-fetch";
+import cors from 'cors';
 
 const app = express();
-app.use(express.json());
+app.use(cors({
+    origin: 'https://denisy2309.github.io/local_qdrant_rag/'
+}));
 
 const KEY_MAP = {
   default: process.env.ELEVEN_DEFAULT,
