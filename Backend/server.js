@@ -26,9 +26,6 @@ app.post("/tts/stream", async (req, res) => {
     ? KEY_MAP.arabic
     : KEY_MAP.default;
 
-  console.log("Using API key:", apiKey);
-  console.log("TTS request body:", req.body);
-
   const elevenRes = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=mp3_44100_128`,
     {
@@ -43,6 +40,8 @@ app.post("/tts/stream", async (req, res) => {
       })
     }
   );
+
+  console.log("ElevenLabs status:", elevenRes.status);
 
   if (!elevenRes.ok) {
     return res.status(elevenRes.status).send("ElevenLabs error");
