@@ -7,6 +7,8 @@ app.use(cors({
     origin: 'https://denisy2309.github.io'
 }));
 
+app.use(express.json());
+
 const KEY_MAP = {
   default: process.env.ELEVEN_DEFAULT,
   arabic: process.env.ELEVEN_ARABIC
