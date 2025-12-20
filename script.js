@@ -1,7 +1,7 @@
 // --- Configuration ---
 const N8N_WEBHOOK_URL = 'http://localhost:8001/v1';
 const ELEVENLABS_API_KEY_DEFAULT = 'sk_53031b6d1929f841ac7d1391dfeb05f22a4a013a14529d0c'; // Default key (German, English, Turkish)
-const ELEVENLABS_API_KEY_ARABIC = 'sk_fae445a502bdf9d6721db1253e41b2ced35028c85b333e0b'; // Arabic-specific key
+const ELEVENLABS_API_KEY_ARABIC = 'sk_2bd9cfde9a9661d021c0e8a40fc0537e54a1169a6fa0bf00'; // Arabic-specific key
 const ELEVENLABS_VOICE_ID_DEFAULT = 'kaGxVtjLwllv1bi2GFag'; // Default German Voice ID
 
 // --- Session ID ---
@@ -394,11 +394,11 @@ async function speakText(text, apiKey) {
     const selectedLang = languageSelect.value;
 
     let voiceId;
-    if (selectedLang.startsWith('en')) voiceId = 'uYXf8XasLslADfZ2MB4u';
-    else if (selectedLang.startsWith('tr')) voiceId = '5RqXmIU9ikjifeWoXHMG';
-    else if (selectedLang.startsWith('ar')) voiceId = 'VMy40598IGgDeaOE8phq';
-    else if (selectedLang.startsWith('ru')) voiceId = 'aG9q1I1wTbfHh5sbpJnp';
-    else if (selectedLang.startsWith('uk')) voiceId = 'Ntd0iVwICtUtA6Fvx27M';
+    if (selectedLang.startsWith('en')) voiceId = 'GrVxA7Ub86nJH91Viyiv';
+    else if (selectedLang.startsWith('tr')) voiceId = 'Q5n6GDIjpN0pLOlycRFT';
+    else if (selectedLang.startsWith('ar')) voiceId = 'QsV9PCczMIklRM6xLPAS';
+    else if (selectedLang.startsWith('ru')) voiceId = '85bJFRap3VIXOThFHxk3';
+    else if (selectedLang.startsWith('uk')) voiceId = '2o2uQnlGaNuV3ObRpxXt';
     else voiceId = ELEVENLABS_VOICE_ID_DEFAULT;
 
     const streamUrl =
