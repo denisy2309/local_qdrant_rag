@@ -402,14 +402,13 @@ async function speakText(text, apiKey) {
     else voiceId = ELEVENLABS_VOICE_ID_DEFAULT;
 
     const streamUrl =
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=pcm_24000`;
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=mp3_44100_128`;
 
     const response = await fetch(streamUrl, {
         method: 'POST',
         headers: {
             'xi-api-key': apiKey,
-            'Content-Type': 'application/json',
-            'Accept': 'audio/pcm'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({
             text,
