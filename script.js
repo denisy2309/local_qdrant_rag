@@ -1,7 +1,5 @@
 // --- Configuration ---
 const N8N_WEBHOOK_URL = 'http://localhost:8001/v1';
-const ELEVENLABS_API_KEY_DEFAULT = 'sk_53031b6d1929f841ac7d1391dfeb05f22a4a013a14529d0c'; // Default key (German, English, Turkish)
-const ELEVENLABS_API_KEY_ARABIC = 'sk_2bd9cfde9a9661d021c0e8a40fc0537e54a1169a6fa0bf00'; // Arabic-specific key
 const ELEVENLABS_VOICE_ID_DEFAULT = 'kaGxVtjLwllv1bi2GFag'; // Default German Voice ID
 
 // --- Session ID ---
@@ -332,37 +330,26 @@ async function handleSend(text, isFromVoice = false) {
         } else {
             // Determine API Key based on language
             const selectedLang = languageSelect.value;
-            const apiKeyToUse = (selectedLang.startsWith('ar') || selectedLang.startsWith('ru') || selectedLang.startsWith('uk-UA'))
-                                ? ELEVENLABS_API_KEY_ARABIC
-                                : ELEVENLABS_API_KEY_DEFAULT;
-
-            if (apiKeyToUse) {
-                 try {
-                     await speakText(botResponseText, apiKeyToUse); // Pass API key to speakText
-                     if (currentMode === 'voiceActive') {
-                         console.log("TTS finished, enabling restart flag.");
-                         allowRecognitionRestart = true;
-                         if (!isRecognizing) {
-                             console.log("Recognition already ended, manually triggering onend for restart check.");
-                             recognition.onend();
-                         }
-                     }
-                 } catch (ttsError) {
-                     console.error("TTS Error occurred:", ttsError);
-                     if (currentMode === 'voiceActive') {
-                         allowRecognitionRestart = false;
-                         statusElement.textContent = 'TTS Fehler. Klicken zum Beenden/Neustarten.';
-                         statusElement.className = 'error';
-                         voiceStatusDisplay.className = 'error';
-                     }
-                 }
-            } else {
-                console.warn('ElevenLabs API Key not set for this language. Skipping TTS.');
+            try {
+                await speakText(botResponseText); // Pass API key to speakText
                 if (currentMode === 'voiceActive') {
-                     allowRecognitionRestart = true;
-                     if (!isRecognizing) { recognition.onend(); }
+                    console.log("TTS finished, enabling restart flag.");
+                    allowRecognitionRestart = true;
+                    if (!isRecognizing) {
+                        console.log("Recognition already ended, manually triggering onend for restart check.");
+                        recognition.onend();
+                    }
+                }
+            } catch (ttsError) {
+                console.error("TTS Error occurred:", ttsError);
+                if (currentMode === 'voiceActive') {
+                    allowRecognitionRestart = false;
+                    statusElement.textContent = 'TTS Fehler. Klicken zum Beenden/Neustarten.';
+                    statusElement.className = 'error';
+                    voiceStatusDisplay.className = 'error';
                 }
             }
+            
         }
     } catch (error) {
         console.error('Error sending/receiving message:', error);
@@ -378,7 +365,7 @@ async function handleSend(text, isFromVoice = false) {
     }
 }
 
-async function speakText(text, apiKey) {
+async function speakText(text) {
     stopCurrentSpeech();
 
     if (!audioContext) {
@@ -401,25 +388,19 @@ async function speakText(text, apiKey) {
     else if (selectedLang.startsWith('uk')) voiceId = '2o2uQnlGaNuV3ObRpxXt';
     else voiceId = ELEVENLABS_VOICE_ID_DEFAULT;
 
-    const streamUrl =
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=mp3_44100_128`;
-
-    const response = await fetch(streamUrl, {
-        method: 'POST',
-        headers: {
-            'xi-api-key': apiKey,
-            'Content-Type': 'application/json'
-        },
+    const response = await fetch("http://localhost:3000/tts/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             text,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+            language: selectedLang,
+            voiceId
         }),
         signal
     });
 
     if (!response.ok) {
-        throw new Error(`ElevenLabs stream failed: ${response.status}`);
+        throw new Error(`TTS stream failed: ${response.status}`);
     }
 
     // UI Status
@@ -435,23 +416,18 @@ async function speakText(text, apiKey) {
     let isPlaying = false;
 
     function playNextChunk() {
-        if (audioQueue.length === 0) {
+        if (!audioQueue.length) {
             isPlaying = false;
             return;
         }
 
         isPlaying = true;
-        const pcmChunk = audioQueue.shift();
-        const audioBuffer = audioContext.createBuffer(
-            1,
-            pcmChunk.length,
-            sampleRate
-        );
-
-        audioBuffer.copyToChannel(pcmChunk, 0);
+        const chunk = audioQueue.shift();
+        const buffer = audioContext.createBuffer(1, chunk.length, sampleRate);
+        buffer.copyToChannel(chunk, 0);
 
         const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
+        source.buffer = buffer;
         source.connect(audioContext.destination);
         source.onended = playNextChunk;
         source.start();
@@ -462,7 +438,6 @@ async function speakText(text, apiKey) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        // PCM16 → Float32
         const pcm16 = new Int16Array(value.buffer);
         const float32 = new Float32Array(pcm16.length);
         for (let i = 0; i < pcm16.length; i++) {
@@ -473,12 +448,7 @@ async function speakText(text, apiKey) {
         if (!isPlaying) playNextChunk();
     }
 
-    // Cleanup & restart listening
     statusTextSpeaking.textContent = '';
-    if (currentMode === 'voiceActive') {
-        allowRecognitionRestart = true;
-        recognition.onend();
-    }
 }
 
 
@@ -558,12 +528,10 @@ enterVoiceModeButton.addEventListener('click', async () => {
     setUIMode('voiceIdle');
     startConversationButton.disabled = true; // Disable button before speaking
     const greeting = "Hallo! Wie kann ich Ihnen bei Ihrer Terminplanung helfen?"; // Greeting is always in German based on previous code
-    const apiKeyToUse = languageSelect.value.startsWith('ar') || languageSelect.value.startsWith('ru') || languageSelect.value.startsWith('uk-UA')
-                                ? ELEVENLABS_API_KEY_ARABIC
-                                : ELEVENLABS_API_KEY_DEFAULT;
+
     try {
         console.log("Attempting to speak greeting on entering voice mode...");
-        await speakText(greeting, apiKeyToUse);
+        await speakText(greeting);
         console.log("Greeting finished speaking.");
         // After greeting, if still in voiceIdle, set status text and enable button
         if (currentMode === 'voiceIdle') { // Check if still in voiceIdle
