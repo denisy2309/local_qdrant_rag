@@ -4,7 +4,7 @@ import cors from 'cors';
 
 const app = express();
 app.use(cors({
-    origin: 'https://denisy2309.github.io/local_qdrant_rag/'
+    origin: 'https://denisy2309.github.io'
 }));
 
 const KEY_MAP = {
