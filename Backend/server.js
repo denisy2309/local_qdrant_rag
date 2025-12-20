@@ -30,7 +30,7 @@ app.post("/tts/stream", async (req, res) => {
   console.log("TTS request body:", req.body);
 
   const elevenRes = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=mp3_44100_128`,
     {
       method: "POST",
       headers: {
