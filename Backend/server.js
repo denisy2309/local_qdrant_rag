@@ -10,7 +10,7 @@ app.use(cors({
 app.use(express.json());
 
 const KEY_MAP = {
-  default:'sk_53031b6d1929f841ac7d1391dfeb05f22a4a013a14529d0c',
+  default:'sk_1c4cc404e842f094fd08f742cb333cd8314028a00015d038',
   arabic:'sk_2bd9cfde9a9661d021c0e8a40fc0537e54a1169a6fa0bf00'
 };
 
@@ -40,7 +40,7 @@ app.post("/tts/stream", async (req, res) => {
       })
     }
   );
-
+  
   console.log("ElevenLabs status:", elevenRes.status);
 
   if (!elevenRes.ok) {
