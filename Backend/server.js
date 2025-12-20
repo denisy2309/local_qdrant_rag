@@ -10,8 +10,8 @@ app.use(cors({
 app.use(express.json());
 
 const KEY_MAP = {
-  default: process.env.ELEVEN_DEFAULT,
-  arabic: process.env.ELEVEN_ARABIC
+  default: sk_53031b6d1929f841ac7d1391dfeb05f22a4a013a14529d0c,
+  arabic: sk_2bd9cfde9a9661d021c0e8a40fc0537e54a1169a6fa0bf00
 };
 
 app.post("/tts/stream", async (req, res) => {
