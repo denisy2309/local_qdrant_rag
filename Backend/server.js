@@ -26,14 +26,16 @@ app.post("/tts/stream", async (req, res) => {
     ? KEY_MAP.arabic
     : KEY_MAP.default;
 
+  console.log("Using API key:", apiKey);
+  console.log("TTS request body:", req.body);
+
   const elevenRes = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
     {
       method: "POST",
       headers: {
         "xi-api-key": apiKey,
-        "Content-Type": "application/json",
-        "Accept": "audio/mpeg"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         text,
