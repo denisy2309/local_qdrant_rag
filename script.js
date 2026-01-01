@@ -368,18 +368,7 @@ async function handleSend(text, isFromVoice = false) {
 async function speakText(text) {
     stopCurrentSpeech();
 
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-    }
-
-    elevenLabsController = new AbortController();
-    const signal = elevenLabsController.signal;
-
     const selectedLang = languageSelect.value;
-
     let voiceId;
     if (selectedLang.startsWith('en')) voiceId = 'GrVxA7Ub86nJH91Viyiv';
     else if (selectedLang.startsWith('tr')) voiceId = 'Q5n6GDIjpN0pLOlycRFT';
@@ -388,68 +377,32 @@ async function speakText(text) {
     else if (selectedLang.startsWith('uk')) voiceId = '2o2uQnlGaNuV3ObRpxXt';
     else voiceId = ELEVENLABS_VOICE_ID_DEFAULT;
 
-    const response = await fetch("http://localhost:3000/tts/stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            text,
-            language: selectedLang,
-            voiceId
-        }),
-        signal
+    const res = await fetch(`http://localhost:3000/tts/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, language: selectedLang, voiceId })
     });
 
-    if (!response.ok) {
-        throw new Error(`TTS stream failed: ${response.status}`);
-    }
+    if (!res.ok) throw new Error(`TTS stream failed: ${res.status}`);
 
-    // UI Status
-    statusTextThinking.textContent = '';
+    const audioBlob = await res.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+
+    // HTML Audio abspielen
+    currentAudio = new Audio(audioUrl);
+    currentAudio.onended = () => {
+        currentAudio = null;
+        if (currentMode === 'voiceActive') {
+            allowRecognitionRestart = true;
+            recognition.onend();
+        }
+    };
     statusTextSpeaking.textContent =
         statusTexts[selectedLang]?.speaking || statusTexts['de-DE'].speaking;
     voiceStatusDisplay.className = 'speaking';
-
-    const reader = response.body.getReader();
-    const sampleRate = 24000;
-
-    let audioQueue = [];
-    let isPlaying = false;
-
-    function playNextChunk() {
-        if (!audioQueue.length) {
-            isPlaying = false;
-            return;
-        }
-
-        isPlaying = true;
-        const chunk = audioQueue.shift();
-        const buffer = audioContext.createBuffer(1, chunk.length, sampleRate);
-        buffer.copyToChannel(chunk, 0);
-
-        const source = audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContext.destination);
-        source.onended = playNextChunk;
-        source.start();
-        currentAudioSource = source;
-    }
-
-    while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        const pcm16 = new Int16Array(value.buffer);
-        const float32 = new Float32Array(pcm16.length);
-        for (let i = 0; i < pcm16.length; i++) {
-            float32[i] = pcm16[i] / 32768;
-        }
-
-        audioQueue.push(float32);
-        if (!isPlaying) playNextChunk();
-    }
-
-    statusTextSpeaking.textContent = '';
+    await currentAudio.play();
 }
+
 
 
 // --- UI Mode Management & Event Listeners ---
