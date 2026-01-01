@@ -10,7 +10,7 @@ app.use(cors({
 app.use(express.json());
 
 const KEY_MAP = {
-  default:'sk_1c4cc404e842f094fd08f742cb333cd8314028a00015d038',
+  default:'sk_6c93c5887a1e00f87b8c46beb09190db014b3cf92e05f7a2',
   arabic:'sk_2bd9cfde9a9661d021c0e8a40fc0537e54a1169a6fa0bf00'
 };
 
