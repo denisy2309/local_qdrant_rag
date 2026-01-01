@@ -1,5 +1,5 @@
 // --- Configuration ---
-const N8N_WEBHOOK_URL = 'http://localhost:8001/v1';
+const N8N_WEBHOOK_URL = 'http://localhost:8081/v1';
 const ELEVENLABS_VOICE_ID_DEFAULT = 'kaGxVtjLwllv1bi2GFag'; // Default German Voice ID
 
 // --- Session ID ---
